@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS aggregate (id SERIAL PRIMARY KEY, request_id INT,request_message VARCHAR(255));
