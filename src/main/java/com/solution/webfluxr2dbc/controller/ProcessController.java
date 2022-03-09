@@ -29,9 +29,6 @@ public class ProcessController {
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     public Mono<Aggregate> findById(@PathVariable("id") Integer id) {
         return processService.findById(id);
-//        e.subscribe(res ->
-//                log.info(String.valueOf(res.getRequestMessage())
-//                ));
     }
 
 }
