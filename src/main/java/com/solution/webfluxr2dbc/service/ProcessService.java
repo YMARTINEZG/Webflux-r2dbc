@@ -2,10 +2,11 @@ package com.solution.webfluxr2dbc.service;
 
 import com.solution.webfluxr2dbc.model.Aggregate;
 import com.solution.webfluxr2dbc.model.RequestData;
+import com.solution.webfluxr2dbc.model.TransmissionStatus;
 import com.solution.webfluxr2dbc.repository.PayloadRepository;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -14,24 +15,35 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class ProcessService implements UseCaseProcess{
 
-    private static final int DEFAULT_PORT = 8080;
+    private final String soapServiceUrl;
 
-    @Setter
-    private int serverPort = DEFAULT_PORT;
+    private final PayloadRepository payloadRepo;
 
-    @Autowired
-    PayloadRepository payloadRepo;
+    public ProcessService(@Value("${web.service.client.url}") String soapServiceUrl, PayloadRepository repository) {
+        this.soapServiceUrl = soapServiceUrl;
+        this.payloadRepo = repository;
+    }
 
     @Override
-    public Mono<String> sendMessage(String message) {
-        Mono<String> messageMono = WebClient.create()
-                .get()
-                .uri(getMockServiceUri())
-                .retrieve()
-                .bodyToMono(String.class);
+    public Mono<TransmissionStatus> sendMessage(RequestData request) {
 
-        messageMono.subscribe(log::info);
-        return messageMono;
+        Mono<TransmissionStatus> status = WebClient.create()
+                .post()
+                .uri(soapServiceUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just(request.getMessage()), String.class)
+                .retrieve()
+                .bodyToMono(TransmissionStatus.class)
+                .doOnSuccess(response -> {
+                    savePayload(request);
+                })
+                .doOnError(Exception.class, ( Exception error ) -> {
+                    System.out.println( "error : "+ error );
+                    error.printStackTrace();
+                });
+
+        status.subscribe();
+        return status;
     }
 
     @Override
@@ -45,12 +57,8 @@ public class ProcessService implements UseCaseProcess{
         return data;
     }
 
-    @Override
-    public void savePayload(RequestData dto) {
+    private void savePayload(RequestData dto) {
         Aggregate aggregate = new Aggregate(0L, dto.getId(), dto.getMessage());
         payloadRepo.save(aggregate).subscribe();
     }
-    private String getMockServiceUri() {
-        return "http://localhost:" + serverPort + "/test_soap/endpoint1";
-    }
-}
+ }

@@ -1,0 +1,4 @@
+web:
+  service:
+    client:
+      url: http://localhost:9201/test_soap/endpoint1

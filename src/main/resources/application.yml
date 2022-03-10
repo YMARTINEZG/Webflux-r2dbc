@@ -1,4 +1,3 @@
-
 server:
   port: 8080
 spring:
@@ -10,5 +9,7 @@ spring:
 logging:
   level:
     org.springframework.data.r2dbc: DEBUG
-
-
+web:
+  service:
+    client:
+      url: http://localhost:8080/test_soap/endpoint1
